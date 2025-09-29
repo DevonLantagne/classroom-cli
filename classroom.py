@@ -1,13 +1,15 @@
+import os  # for working with directories and paths
 import subprocess  # for running shell commands
-import os          # for working with directories and paths
-import sys         # for exiting gracefully
-import click       # for building the CLI with nice commands and arguments
+import sys  # for exiting gracefully
+
+import click  # for building the CLI with nice commands and arguments
 from dotenv import load_dotenv
 
 load_dotenv()  # this loads .env into os.environ
 
 # Replace with your GitHub Classroom organization name
 ORG = os.getenv("ORG", "")
+
 
 def run_cmd(cmd, cwd=None, capture_output=False):
     """
@@ -20,9 +22,9 @@ def run_cmd(cmd, cwd=None, capture_output=False):
     result = subprocess.run(
         cmd,
         cwd=cwd,
-        text=True,      # treat output as text, not bytes
-        shell=True,     # run through the shell (so pipes work)
-        capture_output=capture_output
+        text=True,  # treat output as text, not bytes
+        shell=True,  # run through the shell (so pipes work)
+        capture_output=capture_output,
     )
     return result
 
@@ -30,7 +32,8 @@ def run_cmd(cmd, cwd=None, capture_output=False):
 @click.group()
 def cli():
     """
-    This is the root CLI group. All subcommands (clone, build, flash, push) hang off this.
+    This is the root CLI group. All subcommands
+    (clone, build, flash, push) hang off this.
     Example: 'python classroom.py clone assignment1'
     """
     pass
@@ -43,11 +46,11 @@ def clone(assignment):
     Clone or update all repos for a given assignment.
     - assignment: prefix like 'assignment1'
     """
-    
+
     # Make a folder for this assignment
     if not os.path.isdir(assignment):
         os.makedirs(assignment)
-    
+
     # Use GitHub CLI to list all repos in the org as SSH URLs
     cmd = f'gh repo list {ORG} --limit 200 --json name,sshUrl --jq ".[].sshUrl"'
     result = run_cmd(cmd, capture_output=True)
@@ -75,7 +78,9 @@ def build(assignment):
     If build fails, create a build_feedback.txt file in that repo with the error log.
     """
     for dir in os.listdir("."):  # look at everything in the current folder
-        if dir.startswith(assignment) and os.path.isdir(dir):  # only repos for this assignment
+        if dir.startswith(assignment) and os.path.isdir(
+            dir
+        ):  # only repos for this assignment
             click.echo(f"Building {dir}...")
             result = run_cmd("pio run", cwd=dir, capture_output=True)
             if result.returncode != 0:
@@ -98,7 +103,9 @@ def flash(assignment):
     Also lets you open the repo in VS Code for review/editing.
     """
     # Gather all repos that match the assignment name
-    students = [d for d in os.listdir(".") if d.startswith(assignment) and os.path.isdir(d)]
+    students = [
+        d for d in os.listdir(".") if d.startswith(assignment) and os.path.isdir(d)
+    ]
 
     for student in students:
         click.echo(f"--- Flashing {student} ---")

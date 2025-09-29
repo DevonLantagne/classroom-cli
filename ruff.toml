@@ -1,0 +1,13 @@
+# ruff.toml
+
+line-length = 88
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "B", "I"]       # error codes, bugbear, import sorting
+ignore = ["E203"]                   # black compatibility
+unfixable = ["F401"]                # don't auto-remove unused imports
+
+[format]
+quote-style = "double"
+indent-style = "space"
