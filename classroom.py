@@ -29,6 +29,20 @@ def run_cmd(cmd, cwd=None, capture_output=False):
     return result
 
 
+def parse_assignment_prefix(repo_name: str) -> str:
+    """
+    Given a repo name like 'assignment1-alice' or 'assignment1_alice',
+    return the assignment prefix part ('assignment1'). If the repo name
+    doesn't follow the expected pattern, return the full name so it can
+    still be listed.
+    """
+    # common separators used by GitHub Classroom are '-' and '_'
+    for sep in ("-", "_"):
+        if sep in repo_name:
+            return repo_name.split(sep, 1)[0]
+    return repo_name
+
+
 @click.group()
 def cli():
     """
@@ -68,6 +82,45 @@ def clone(assignment):
         else:
             click.echo(f"Cloning {name}...")
             run_cmd(f"git clone {repo}")
+
+
+@cli.command("list")
+@click.option("--counts", is_flag=True, help="Show number of repos per assignment")
+def list_assignments(counts):
+    """
+    List all assignments found in the GitHub organization by inspecting
+    repository names. Assumes repos follow the GitHub Classroom naming
+    convention like 'assignment1-studentname' or 'assignment1_studentname'.
+
+    Example:
+      python classroom.py list
+      python classroom.py list --counts
+    """
+    cmd = f'gh repo list {ORG} --limit 1000 --json name --jq ".[].name"'
+    result = run_cmd(cmd, capture_output=True)
+    if result.returncode != 0:
+        click.echo(
+            "Failed to list repos. Ensure GitHub CLI is installed "
+            "and you're authenticated."
+        )
+        click.echo(result.stderr)
+        sys.exit(1)
+
+    names = [n.strip() for n in result.stdout.splitlines() if n.strip()]
+
+    # Group by assignment prefix
+    groups = {}
+    for name in names:
+        prefix = parse_assignment_prefix(name)
+        groups.setdefault(prefix, 0)
+        groups[prefix] += 1
+
+    # Sort prefixes naturally (alphabetic)
+    for prefix in sorted(groups.keys()):
+        if counts:
+            click.echo(f"{prefix}: {groups[prefix]}")
+        else:
+            click.echo(prefix)
 
 
 @cli.command()
