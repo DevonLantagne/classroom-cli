@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "classroom-cli"
+version = "0.1.0"
+description = "CLI for managing GitHub Classroom assignments"
+readme = "README.md"
+authors = [
+    { name="Devon Lantagne", email="lantagned@msoe.edu" }
+]
+dependencies = [
+    "click",
+    "PyGithub",
+    "pandas"
+]
+
+[project.scripts]
+classroom-cli = "classroom_cli.cli:cli"
