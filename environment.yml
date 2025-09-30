@@ -8,4 +8,4 @@ dependencies:
   - pip
   - pip:
     - click==8.1.7
-    - PyGithub==2.5.0
+    - PyGithub==2.8.1
