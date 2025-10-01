@@ -1,11 +1,8 @@
 name: classroom-cli
 channels:
   - conda-forge
-  - defaults
 dependencies:
   - python=3.12
-  - pandas=2.2.2
   - pip
   - pip:
-    - click==8.1.7
-    - PyGithub==2.8.1
+      - -e .

@@ -9,6 +9,16 @@ This cli program is built using Python. Installation will be different depending
 ## Easiest: pipx
 
 
+# Setup
+
+Add the `classroom_roster.csv` file from GitHub Classroom to the root directory of the CLI program.
+
+Populate a `.env` file with the following vars:
+- `EDITOR`: The editor you want to open for each project (default is VS Code)
+- `GH_PATH`: The path to your gh.exe
+- `GITHUB_TOKEN`: The token from your GH CLI. Run `gh auth token` to show the token.
+
+TODO: Make this more flexible.
 
 # Development
 
@@ -16,8 +26,8 @@ Clone this repo and configure a virtual environment using `conda`. Use the Anaco
 
 ```bash
 cd <path to this repo>
-conda create -n classroom-cli-dev python=3.11
-conda activate classroom-cli-dev
+conda create -n classroom-cli python=3.11
+conda activate classroom-cli
 pip install -e .
 ```
 
