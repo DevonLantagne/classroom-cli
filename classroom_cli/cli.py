@@ -1,4 +1,6 @@
 import os
+import shutil
+import stat
 import subprocess
 
 import click
@@ -30,8 +32,23 @@ def gh_classroom_clone(assignment_id, output_dir):
     the submission directory. Student repos are prepended with their
     student names provided by the classroom roster csv file.
 
-    Do not run this command twice as it will cause bad duplicates.
+    Do not run this command twice for the same assignment unless some
+    students did not have a repo prior to your first clone. This will
+    cause gh to clone new repos and waste your time. This command will
+    detect if gh clones new repos and remove them (you will still have
+    the repos from your first assignment clone).
     """
+
+    def remove_readonly(func, path, excinfo):
+        """
+        func: the function that failed (os.remove, os.rmdir)
+        path: the path that failed
+        excinfo: exception info tuple (type, value, traceback)
+        """
+        # Make the file writable
+        os.chmod(path, stat.S_IWRITE)
+        func(path)  # retry
+
     roster = load_roster(ROSTER_CSV)
     os.makedirs(output_dir, exist_ok=True)
 
@@ -71,18 +88,34 @@ def gh_classroom_clone(assignment_id, output_dir):
         if not os.path.isdir(folder_path):
             continue
 
-        new_folder_name = folder  # start with original
+        # Detect already-renamed folders (they start with a roster name)
+        # A simple heuristic: if the folder starts with any known student_name_, skip it
+        already_named = any(
+            folder.startswith(student_name.replace(" ", "_"))
+            for student_name in roster.values()
+        )
+        if already_named:
+            # This folder was renamed in an earlier run, leave it alone
+            continue
+
+        # Otherwise, see if the folder matches a known GitHub username
         for github_username, student_name in roster.items():
             if github_username in folder:
                 safe_name = student_name.replace(" ", "_")
-                # prepend username and student name
                 new_folder_name = f"{safe_name}-{folder}"
-                break  # stop after first match
+                new_path = os.path.join(assignment_dir, new_folder_name)
 
-        new_path = os.path.join(assignment_dir, new_folder_name)
-        if folder_path != new_path:
-            click.echo(f"Renaming {folder_path} -> {new_path}")
-            os.rename(folder_path, new_path)
+                if os.path.exists(new_path):
+                    # The properly renamed folder already exists.
+                    # 'folder' is a duplicate!
+                    click.echo(f"Deleting duplicate {folder} (already renamed exists)")
+                    shutil.rmtree(folder_path, onexc=remove_readonly)
+                else:
+                    # This is a first-time rename
+                    click.echo(f"Renaming {folder} -> {new_folder_name}")
+                    os.rename(folder_path, new_path)
+
+                break  # stop after handling this folder
 
 
 @click.group()
