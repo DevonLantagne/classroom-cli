@@ -25,10 +25,10 @@ def load_roster(csv_path):
     return dict(zip(df["github_username"], df["identifier"], strict=False))
 
 
-def gh_classroom_clone(assignment_id, output_dir):
+def gh_classroom_clone(assignment_id, class_dir):
     """
     Clones all student repos for an assignment. A submission directory
-    will be created in the output_dir. Student repos will be cloned into
+    will be created in the class_dir. Student repos will be cloned into
     the submission directory. Student repos are prepended with their
     student names provided by the classroom roster csv file.
 
@@ -50,9 +50,9 @@ def gh_classroom_clone(assignment_id, output_dir):
         func(path)  # retry
 
     roster = load_roster(ROSTER_CSV)
-    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(class_dir, exist_ok=True)
 
-    click.echo(f"Cloning assignment ID '{assignment_id}' into '{output_dir}'...")
+    click.echo(f"Cloning assignment ID '{assignment_id}' into '{class_dir}'...")
 
     # Run gh classroom clone command with -a ID and the directory
     subprocess.run(
@@ -64,7 +64,7 @@ def gh_classroom_clone(assignment_id, output_dir):
             "-a",
             str(assignment_id),
             "--directory",
-            output_dir,
+            class_dir,
         ],
         shell=True,
         check=True,
@@ -72,12 +72,14 @@ def gh_classroom_clone(assignment_id, output_dir):
 
     # Find the "-submissions" folder gh just made (the most recent one)
     subdirs = [
-        os.path.join(output_dir, d)
-        for d in os.listdir(output_dir)
-        if os.path.isdir(os.path.join(output_dir, d))
+        os.path.join(class_dir, d)
+        for d in os.listdir(class_dir)
+        if os.path.isdir(os.path.join(class_dir, d))
     ]
     if not subdirs:
-        raise RuntimeError(f"No assignment folder found in {output_dir}")
+        raise RuntimeError(
+            f"No assignment folder found in {class_dir}. The clone might have failed"
+        )
 
     assignment_dir = max(subdirs, key=os.path.getmtime)
     click.echo(f"Using assignment directory: {assignment_dir}")
@@ -126,13 +128,13 @@ def cli():
 @cli.command()
 @click.argument("assignment_id")
 @click.option(
-    "--output-dir",
+    "--class-dir",
     default=".",
-    help="Directory where assignment folder will be created.",
+    help="Directory where the assignment folder will be created.",
 )
-def clone(assignment_id, output_dir):
+def clone(assignment_id, class_dir):
     """Clone all student repos for assignment_id."""
-    gh_classroom_clone(assignment_id, output_dir)
+    gh_classroom_clone(assignment_id, class_dir)
 
 
 @cli.command()
