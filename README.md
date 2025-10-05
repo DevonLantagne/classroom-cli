@@ -8,6 +8,7 @@ This cli program is built using Python. Installation will be different depending
 
 ## Easiest: pipx
 
+This app can be 'installed' like any other pip package. This way you can call `classroom-cli` from anywhere on your system.
 
 # Setup
 
