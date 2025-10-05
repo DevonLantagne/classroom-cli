@@ -2,18 +2,19 @@ import os
 import shutil
 import stat
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 
 import click
 import pandas as pd
 from dotenv import load_dotenv
 
-ROSTER_CSV = "classroom_roster.csv"
-
 # Load .env file into environment variables
 load_dotenv()
 
+roster_csv = os.getenv("ROSTER_PATH")
 token = os.getenv("GITHUB_TOKEN")
 gh_path = os.getenv("GH_PATH")
+pio_path = os.getenv("PIO_PATH")
 
 if not token:
     raise RuntimeError("GITHUB_TOKEN not found in .env or environment")
@@ -49,7 +50,7 @@ def gh_classroom_clone(assignment_id, class_dir):
         os.chmod(path, stat.S_IWRITE)
         func(path)  # retry
 
-    roster = load_roster(ROSTER_CSV)
+    roster = load_roster(roster_csv)
     os.makedirs(class_dir, exist_ok=True)
 
     click.echo(f"Cloning assignment ID '{assignment_id}' into '{class_dir}'...")
@@ -140,9 +141,56 @@ def clone(assignment_id, class_dir):
 @cli.command()
 def roster():
     """Print the roster dictionary."""
-    roster = load_roster(ROSTER_CSV)
+    roster = load_roster(roster_csv)
     for username, identifier in roster.items():
         click.echo(f"{identifier}: {username}")
+
+
+def build_project(repo_path):
+    """Build a PlatformIO project located at repo_path."""
+    try:
+        subprocess.run(
+            [pio_path, "run", "--disable-auto-clean", "--silent"],
+            cwd=repo_path,
+            check=True,
+        )
+        click.echo(f"Successfully built {os.path.basename(repo_path)}")
+        return True
+    except subprocess.CalledProcessError:
+        click.echo(f"Failed to build {os.path.basename(repo_path)}")
+        return False
+
+
+@cli.command()
+@click.option(
+    "--submission-dir", default=".", help="Directory containing student repos."
+)
+@click.option(
+    "--parallel/--no-parallel",
+    default=True,
+    help="Enable or disable parallelism in the build process.",
+)
+def build(submission_dir, parallel):
+    """Build all PlatformIO projects in an submission directory."""
+    repo_paths = [
+        os.path.join(submission_dir, d)
+        for d in os.listdir(submission_dir)
+        if os.path.isdir(os.path.join(submission_dir, d))
+    ]
+    results = []
+
+    if parallel:
+        with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+            futures = [executor.submit(build_project, p) for p in repo_paths]
+            for f in futures:
+                results.append(f.result())
+    else:
+        for p in repo_paths:
+            build_project(p)
+
+    click.echo(
+        f"\nSummary: {results.count(True)} passed, {results.count(False)} failed"
+    )
 
 
 if __name__ == "__main__":
