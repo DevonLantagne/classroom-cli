@@ -165,12 +165,7 @@ def build_project(repo_path):
 @click.option(
     "--submission-dir", default=".", help="Directory containing student repos."
 )
-@click.option(
-    "--parallel/--no-parallel",
-    default=True,
-    help="Enable or disable parallelism in the build process.",
-)
-def build(submission_dir, parallel):
+def build(submission_dir):
     """Build all PlatformIO projects in an submission directory."""
     repo_paths = [
         os.path.join(submission_dir, d)
@@ -179,14 +174,8 @@ def build(submission_dir, parallel):
     ]
     results = []
 
-    if parallel:
-        with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
-            futures = [executor.submit(build_project, p) for p in repo_paths]
-            for f in futures:
-                results.append(f.result())
-    else:
-        for p in repo_paths:
-            build_project(p)
+    for p in repo_paths:
+        results.append(build_project(p))
 
     click.echo(
         f"\nSummary: {results.count(True)} passed, {results.count(False)} failed"
