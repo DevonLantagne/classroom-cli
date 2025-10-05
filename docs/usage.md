@@ -30,4 +30,14 @@ This will create a folder in `course_dir` with the name of the assignment slug (
 
 ## Assessments
 
-Open the `assignment_dir` in VS Code. You will then folders for each student's repo. Note that inside each student's repo is the `.git` folder. VS Code will track ALL of the repos in this one window. In the Source Control panel of VS Code you will see the change log for all student repos. You can now add or edit files in the student repos and make your own commits to their repos. Push each repo to 'submit' feedback to the students (for them to pull down).
+Note that inside each student's repo is the `.git` folder. VS Code will track ALL of the repos in this one window. In the Source Control panel of VS Code you will see the change log for all student repos. You can now add or edit files in the student repos and make your own commits to their repos. Push each repo to 'submit' feedback to the students (for them to pull down).
+
+### Quick Assessment
+
+If you only want to read source code and not compile, you can open the `assignment_dir` in VS Code. All subfolders (student submissions) will be viewed as subfolders in the VS Code workspace. Git only tracks files in its respective repo.
+
+### Detailed Assessment
+
+If you want to compile and upload the student's code for testing:
+
+
