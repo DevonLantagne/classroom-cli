@@ -2,7 +2,6 @@ import os
 import shutil
 import stat
 import subprocess
-from concurrent.futures import ThreadPoolExecutor
 
 import click
 import pandas as pd
@@ -15,6 +14,9 @@ roster_csv = os.getenv("ROSTER_PATH")
 token = os.getenv("GITHUB_TOKEN")
 gh_path = os.getenv("GH_PATH")
 pio_path = os.getenv("PIO_PATH")
+
+# Constants
+eval_branch_name = "assessment"
 
 if not token:
     raise RuntimeError("GITHUB_TOKEN not found in .env or environment")
@@ -182,7 +184,50 @@ def build(submission_dir):
     )
 
 
+@cli.command()
+@click.option(
+    "--submission-dir", default=".", help="Directory containing student repos."
+)
+def branch(submission_dir):
+    """Creates an 'assessment' branch in all student repos in a submission directory."""
+    repo_paths = [
+        os.path.join(submission_dir, d)
+        for d in os.listdir(submission_dir)
+        if os.path.isdir(os.path.join(submission_dir, d))
+    ]
+
+    for repo_path in repo_paths:
+        # Check if 'assessment' branch exists
+        result = subprocess.run(
+            ["git", "branch", "--list", {eval_branch_name}],
+            cwd=repo_path,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        branch_exists = bool(result.stdout.strip())
+
+        if branch_exists:
+            click.echo(
+                f"'{eval_branch_name}' branch exists in {os.path.basename(repo_path)}. "
+                "Checking it out."
+            )
+            subprocess.run(
+                ["git", "checkout", {eval_branch_name}],
+                cwd=repo_path,
+                check=True,
+            )
+        else:
+            click.echo(
+                f"Creating and checking out '{eval_branch_name}' branch in "
+                f"{os.path.basename(repo_path)}."
+            )
+            subprocess.run(
+                ["git", "checkout", "-b", {eval_branch_name}],
+                cwd=repo_path,
+                check=True,
+            )
+
+
 if __name__ == "__main__":
     cli()
-
-# I added a comment on client
