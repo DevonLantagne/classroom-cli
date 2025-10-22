@@ -22,11 +22,23 @@ First you will need the assignment ID. There are several options to get this ID:
 
 Now we can clone the student's submissions:
 
-```
+```bash
 classroom-cli clone --output-dir <course_dir> <assignment_id>
 ```
 
 This will create a folder in `course_dir` with the name of the assignment slug (`assignment_dir`). Inside this folder will be the student repos with their names from the roster.
+
+## Preparing Repos for Assessment
+
+Before making changes to student repos, it is advised to create an assessment branch in their Git history. This prevents issues for students that forget to push their last commit if an evaluator makes a commit on their older version of code. Students will need to be instructed on how to view a different branch.
+
+The `classroom-cli` tool has a command to create these assessment branches for all repos for an assignment. After the branches are created, the assessment branch will be checked out. This keeps the `main` branch in the student's control and makes any edits made by the evaluator only applied to the assessment branch.
+
+```bash
+classroom-cli branch --submission-dir <assigment_dir>
+```
+
+Replace `<assignment_dir>` with the path to the assignment folder (submission folder) that contains all the student repos.
 
 ## Assessments
 
@@ -38,6 +50,10 @@ If you only want to read source code and not compile, you can open the `assignme
 
 ### Detailed Assessment
 
-If you want to compile and upload the student's code for testing:
+If you want to compile the student's code for testing, run the `build` command. This will build all student projects (serially). Failed builds will be noted in the command output. You will have to manually upload the binaries to your test board.
 
+```bash
+classroom-cli build --submission-dir <assigment_dir>
+```
 
+Replace `<assigment_dir>` with the directory that contains the student's repos.

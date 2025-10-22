@@ -16,8 +16,10 @@ Add the `classroom_roster.csv` file from GitHub Classroom to the root directory 
 
 Populate a `.env` file with the following vars:
 - `EDITOR`: The editor you want to open for each project (default is VS Code)
+- `ROSTER_PATH`: path to the GitHub Classroom roster file to link student names with GitHub users.
 - `GH_PATH`: The path to your gh.exe
 - `GITHUB_TOKEN`: The token from your GH CLI. Run `gh auth token` to show the token.
+- `PIO_PATH`: Path to the PlatformIO `pio` command.
 
 TODO: Make this more flexible.
 
