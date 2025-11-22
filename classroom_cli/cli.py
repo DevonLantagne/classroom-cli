@@ -199,13 +199,13 @@ def branch(submission_dir):
     for repo_path in repo_paths:
         # Check if 'assessment' branch exists
         result = subprocess.run(
-            ["git", "branch", "--list", {eval_branch_name}],
+            ["git", "branch", "--list", eval_branch_name],
             cwd=repo_path,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
         )
-        branch_exists = bool(result.stdout.strip())
+        branch_exists = result.stdout.strip() != ""
 
         if branch_exists:
             click.echo(
@@ -213,17 +213,17 @@ def branch(submission_dir):
                 "Checking it out."
             )
             subprocess.run(
-                ["git", "checkout", {eval_branch_name}],
+                ["git", "checkout", eval_branch_name],
                 cwd=repo_path,
                 check=True,
             )
         else:
             click.echo(
                 f"Creating and checking out '{eval_branch_name}' branch in "
-                f"{os.path.basename(repo_path)}."
+                f"{os.path.basename(repo_path)}"
             )
             subprocess.run(
-                ["git", "checkout", "-b", {eval_branch_name}],
+                ["git", "checkout", "-b", eval_branch_name],
                 cwd=repo_path,
                 check=True,
             )
