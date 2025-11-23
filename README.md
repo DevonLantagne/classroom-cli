@@ -2,6 +2,13 @@
 
 Python program to assist in grading PlatformIO projects submitted via GitHub Classroom.
 
+You will need the following on your system:
+- Python 3.12+
+- Git CLI
+- GitHub CLI
+- VS Code
+- PlatformIO Extension for VS Code
+
 # Installation
 
 This cli program is built using Python. This installation guide will help you install Python and then install the `classroom-cli` tool into a virtual environment.
