@@ -13,8 +13,7 @@ authors = [
 dependencies = [
     "click",
     "PyGithub",
-    "pandas",
-    "python-dotenv"
+    "pandas"
 ]
 
 [project.scripts]

@@ -4,26 +4,89 @@ Python program to assist in grading PlatformIO projects submitted via GitHub Cla
 
 # Installation
 
-This cli program is built using Python. Installation will be different depending on your use-case:
+This cli program is built using Python. This installation guide will help you install Python and then install the `classroom-cli` tool into a virtual environment.
 
-## Easiest: pipx
+## Install Python and Pipx
 
-This app can be 'installed' like any other pip package. This way you can call `classroom-cli` from anywhere on your system.
+> [!INFO]
+> If using MacOS or Linux, replace all instances of `python` with `python3`.
+
+1. Install Python 3.12+ on your system.
+
+    https://www.python.org/downloads/
+
+    During installation, make sure to check "**Add Python to PATH**".
+
+2. Test your Python installation.
+
+    Open a terminal and run the command: `python --version`. It should say something like `Python 3.12.xx`.
+
+3. Install pipx to manage Python packages globally.
+
+    Open a terminal (or use the same one from earlier) and run:
+
+    ```
+    python -m pip install --user pipx
+    python -m pipx ensurepath
+    ```
+
+4. Close the terminal and open a new one for path changes to take effect. Test pipx with by running `pipx --version`.
+
+    `pipx` is the Python tool that will install `classroom-cli` so that the tool's dependencies don't interfere with your system Python.
+
+## Install `classroom-cli`
+
+1. Open a terminal and run:
+
+    ```
+    pipx install git+https://github.com/DevonLantagne/classroom-cli
+    ```
+
+    This will install `classroom-cli` and its dependencies. You should now be able to run `classroom-cli` from any terminal in any directory.
+
+2. You can test `classroom-cli` by running:
+
+    ```
+    classroom-cli --help
+    ```
+
+You can now run `classroom-cli` commands in any terminal and directory.
+
+## Updating `classoom-cli`
+
+You can easily update the CLI tool by running:
+
+```
+pipx upgrade --spec git+https://github.com/DevonLantagne/classroom-cli classroom-cli
+```
+
+## Uninistalling `classroom-cli`
+
+You can uninstall the CLI tool by running:
+
+```
+pipx uninstall classroom-cli
+```
 
 # Setup
 
-Add the `classroom_roster.csv` file from GitHub Classroom to the root directory of the CLI program.
+After installing `classroom-cli`, configure the tool by running the configuration command:
 
-Populate a `.env` file with the following vars:
-- `EDITOR`: The editor you want to open for each project (default is VS Code)
-- `ROSTER_PATH`: path to the GitHub Classroom roster file to link student names with GitHub users.
+```
+classroom-cli configure
+```
+
+This setup wizard will ask you to set up:
+
+- `ROSTER_PATH`: path to the GitHub Classroom roster file `classroom_roster.csv` to link student names with GitHub users.
 - `GH_PATH`: The path to your gh.exe
-- `GITHUB_TOKEN`: The token from your GH CLI. Run `gh auth token` to show the token.
-- `PIO_PATH`: Path to the PlatformIO `pio` command.
-
-TODO: Make this more flexible.
+- `GITHUB_TOKEN`: The token from your GH CLI. Run `gh auth token` in your terminal to show the token.
+- `PIO_PATH`: Path to the PlatformIO `pio` command. This is often found in your home folder in the `.platformio` folder.
+- `EDITOR`: The editor you want to open for each project (default is VS Code)
 
 # Development
+
+You can clone this repo and install this CLI tool in "editable" mode. This means that any changes you make to source code will be reflected automatically in the CLI tool commands - no need to reinstall the tool after every change.
 
 Clone this repo and configure a virtual environment using `conda`. Use the Anaconda Prompt for environment setup and testing. In Anaconda Prompt:
 
