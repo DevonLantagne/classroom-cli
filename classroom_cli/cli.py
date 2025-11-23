@@ -112,7 +112,7 @@ def gh_classroom_clone(assignment_id, class_dir) -> str:
                 if os.path.exists(new_path):
                     # The properly renamed folder already exists.
                     # 'folder' is a duplicate!
-                    click.echo(f"Deleting duplicate {folder} (already renamed exists)")
+                    click.echo(f"Deleting duplicate {folder} (renamed already exists)")
                     shutil.rmtree(folder_path, onexc=remove_readonly)
                 else:
                     # This is a first-time rename
@@ -123,8 +123,8 @@ def gh_classroom_clone(assignment_id, class_dir) -> str:
 
     click.echo(f"Assignments cloned to 'submission-dir': {assignment_dir}")
     click.echo(
-        "cd into or use this directory for the "
-        "--submission-dir argument for other commands"
+        "cd into or use this directory for the\n"
+        "--submission-dir option for other commands"
     )
 
     return assignment_dir
@@ -142,10 +142,10 @@ def build_project(repo_path) -> bool:
             cwd=repo_path,
             check=True,
         )
-        click.echo("   Build Successfull")
+        click.echo("\tBuild Successfull")
         return True
     except subprocess.CalledProcessError:
-        click.echo("   Build Failed")
+        click.echo("\tBuild Failed")
         return False
 
 
@@ -184,8 +184,8 @@ def changeBranch(submission_dir, branch_name):
 
         if branch_exists:
             click.echo(
-                f"'{branch_name}' branch exists in {os.path.basename(repo_path)}. "
-                "Checking it out. Consider merging from main if necessary."
+                f"'{branch_name}' branch exists in {os.path.basename(repo_path)}.\n"
+                "\tChecking it out. Consider merging from main if necessary."
             )
             subprocess.run(
                 ["git", "checkout", branch_name],
@@ -283,6 +283,94 @@ def build(submission_dir):
 def branch(submission_dir, branch_name):
     """Creates an 'assessment' branch in all student repos in a submission directory."""
     changeBranch(submission_dir, branch_name)
+
+
+@cli.command()
+@click.option(
+    "--submission-dir", default=".", help="Directory containing student repos."
+)
+@click.option(
+    "--message",
+    default="assessment",
+    help="Commit message to use for assessment branch commits.",
+)
+@click.option(
+    "--branch-name",
+    default="assessment",
+    help="Name of the branch to be pushed to the origin (GitHub).",
+)
+def push(submission_dir, message, branch_name):
+    """
+    Stage all changes, commit, and push the 'assessment' branch
+    for every student repo in a submission directory.
+    """
+    repo_paths = getRepoPaths(submission_dir)
+
+    click.echo(
+        f"Committing and pushing '{branch_name}' branch to "
+        "origin for all student repos..."
+    )
+
+    for repo_path in repo_paths:
+        repo_name = os.path.basename(repo_path)
+        click.echo(f"\n--- {repo_name} ---")
+
+        # Ensure assessment branch exists and is checked out
+        result = subprocess.run(
+            ["git", "branch", "--list", branch_name],
+            cwd=repo_path,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        branch_exists = result.stdout.strip() != ""
+
+        if branch_exists:
+            subprocess.run(
+                ["git", "checkout", branch_name],
+                cwd=repo_path,
+                check=True,
+            )
+        else:
+            subprocess.run(
+                ["git", "checkout", "-b", branch_name],
+                cwd=repo_path,
+                check=True,
+            )
+
+        # Stage all changes
+        subprocess.run(
+            ["git", "add", "-A"],
+            cwd=repo_path,
+            check=True,
+        )
+
+        # Create commit if there are staged changes
+        commit_proc = subprocess.run(
+            ["git", "commit", "-m", message],
+            cwd=repo_path,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if (
+            "nothing to commit" in commit_proc.stdout.lower()
+            or "nothing to commit" in commit_proc.stderr.lower()
+        ):
+            click.echo("No changes to commit.")
+        else:
+            click.echo("Committed changes.")
+
+        # Push branch to origin
+        try:
+            subprocess.run(
+                ["git", "push", "-u", "origin", branch_name],
+                cwd=repo_path,
+                check=True,
+            )
+            click.echo("Pushed to origin.")
+        except subprocess.CalledProcessError:
+            click.echo("Failed to push to origin.")
 
 
 if __name__ == "__main__":
