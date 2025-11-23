@@ -1,21 +1,7 @@
-import os
-
 import click
-from dotenv import load_dotenv
 
+from .config import config_wizard, get_config
 from .core import build_all, changeBranch, gh_classroom_clone, push_branches
-from .utils import load_roster
-
-# Load .env file into environment variables
-load_dotenv()
-
-roster_csv = os.getenv("ROSTER_PATH")
-token = os.getenv("GITHUB_TOKEN")
-gh_path = os.getenv("GH_PATH")
-pio_path = os.getenv("PIO_PATH")
-
-if not token:
-    raise RuntimeError("GITHUB_TOKEN not found in .env or environment")
 
 
 @click.group()
@@ -27,7 +13,20 @@ def cli():
     You can perform a batched build of all student repositories.
     You can easily create 'assessment' branches from their main.
     You can also commit and push all 'assessment' branches at once.
+
+    To begin, run: classroom-cli configure
     """
+
+
+@cli.command()
+def configure():
+    """
+    Interactive setup for classroom-cli.
+
+    Configures GitHub token, roster paths, and tool paths.
+    Creates ~/.classroom_cli/config.json.
+    """
+    config_wizard()
 
 
 @cli.command()
@@ -90,6 +89,9 @@ def roster():
 
     Prints the roster that you provided with your roster_csv .env variable.
     """
+    from .utils import load_roster
+
+    roster_csv = get_config("roaster_csv")
     roster = load_roster(roster_csv)
     for username, identifier in roster.items():
         click.echo(f"{identifier}: {username}")

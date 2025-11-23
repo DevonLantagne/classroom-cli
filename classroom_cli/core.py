@@ -4,26 +4,17 @@ import stat
 import subprocess
 
 import click
-from dotenv import load_dotenv
 
+from .config import get_config
 from .utils import getRepoPaths, load_roster
-
-# Load .env file into environment variables
-load_dotenv()
-
-roster_csv = os.getenv("ROSTER_PATH")
-token = os.getenv("GITHUB_TOKEN")
-gh_path = os.getenv("GH_PATH")
-pio_path = os.getenv("PIO_PATH")
-
-if not token:
-    raise RuntimeError("GITHUB_TOKEN not found in .env or environment")
 
 
 def gh_classroom_clone(assignment_id, class_dir) -> str:
     """Clone a GitHub Classroom assignment.
     Returns path of directory where assignments were cloned.
     """
+
+    get_config("github_token")
 
     def remove_readonly(func, path, excinfo):
         """
@@ -35,7 +26,7 @@ def gh_classroom_clone(assignment_id, class_dir) -> str:
         os.chmod(path, stat.S_IWRITE)
         func(path)  # retry
 
-    roster = load_roster(roster_csv)
+    roster = load_roster(get_config("roster_csv"))
     os.makedirs(class_dir, exist_ok=True)
 
     click.echo(f"Cloning assignment ID '{assignment_id}' into '{class_dir}'...")
@@ -43,7 +34,7 @@ def gh_classroom_clone(assignment_id, class_dir) -> str:
     # Run gh classroom clone command with -a ID and the directory
     subprocess.run(
         [
-            gh_path,
+            get_config("gh_path"),
             "classroom",
             "clone",
             "student-repos",
@@ -117,8 +108,7 @@ def gh_classroom_clone(assignment_id, class_dir) -> str:
 
 def build_project(repo_path) -> bool:
     """Build a PlatformIO project located at repo_path."""
-    if not pio_path:
-        raise RuntimeError("PIO_PATH not found in .env or environment.")
+    pio_path = get_config("pio_path")
 
     click.echo(f"Building PIO project in: {os.path.basename(repo_path)}")
     try:
@@ -190,6 +180,9 @@ def changeBranch(submission_dir, branch_name):
 
 
 def push_branches(submission_dir, message, branch_name):
+
+    get_config("github_token")
+
     repo_paths = getRepoPaths(submission_dir)
 
     click.echo(
