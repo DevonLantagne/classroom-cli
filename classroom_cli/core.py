@@ -250,3 +250,13 @@ def push_branches(submission_dir, message, branch_name):
             click.echo("Pushed to origin.")
         except subprocess.CalledProcessError:
             click.echo("Failed to push to origin.")
+
+
+def launch_editor(editor_cmd: str, target_dir: str):
+    parts = editor_cmd.split()
+
+    exe = parts[0]
+    if shutil.which(exe) is None:
+        raise click.UsageError(f"Editor executable not found: {exe}")
+
+    subprocess.Popen(parts + [target_dir])

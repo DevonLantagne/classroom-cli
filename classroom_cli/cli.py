@@ -1,7 +1,13 @@
 import click
 
 from .config import config_wizard, get_config
-from .core import build_all, changeBranch, gh_classroom_clone, push_branches
+from .core import (
+    build_all,
+    changeBranch,
+    gh_classroom_clone,
+    launch_editor,
+    push_branches,
+)
 
 
 @click.group()
@@ -25,6 +31,8 @@ def configure():
 
     Configures GitHub token, roster paths, and tool paths.
     Creates ~/.classroom_cli/config.json.
+
+    User can edit the config.json manually if needed.
     """
     config_wizard()
 
@@ -35,6 +43,7 @@ def configure():
     "--class-dir",
     default=".",
     help="Directory where the assignment folder will be created.",
+    type=click.Path(file_okay=False, dir_okay=True, writable=True, resolve_path=True),
 )
 def clone(assignment_id, class_dir):
     """
@@ -60,11 +69,13 @@ def clone(assignment_id, class_dir):
     "--class-dir",
     default=".",
     help="Directory where the assignment folder will be created.",
+    type=click.Path(file_okay=False, dir_okay=True, writable=True, resolve_path=True),
 )
 @click.option(
     "--branch-name",
     default="assessment",
     help="Name of the branch to be created in the student's repo.",
+    type=click.STRING,
 )
 def cloneBuildBranch(assignment_id, class_dir, branch_name):
     """
@@ -99,7 +110,26 @@ def roster():
 
 @cli.command()
 @click.option(
-    "--submission-dir", default=".", help="Directory containing student repos."
+    "--submission_dir",
+    default=".",
+    help="Directory containing student repos.",
+    type=click.Path(exists=True, file_okay=False),
+)
+def openAll(submission_dir):
+    """
+    Opens the default editor.
+    """
+    editor = get_config("editor")
+    launch_editor(editor, submission_dir)
+    click.echo(f"Opened {submission_dir} in {editor}.")
+
+
+@cli.command()
+@click.option(
+    "--submission-dir",
+    default=".",
+    help="Directory containing student repos.",
+    type=click.Path(exists=True, file_okay=False),
 )
 def build(submission_dir):
     """
@@ -114,12 +144,16 @@ def build(submission_dir):
 
 @cli.command()
 @click.option(
-    "--submission-dir", default=".", help="Directory containing student repos."
+    "--submission-dir",
+    default=".",
+    help="Directory containing student repos.",
+    type=click.Path(exists=True, file_okay=False),
 )
 @click.option(
     "--branch-name",
     default="assessment",
     help="Name of the branch to be created in the student's repo.",
+    type=click.STRING,
 )
 def branch(submission_dir, branch_name):
     """
@@ -136,25 +170,30 @@ def branch(submission_dir, branch_name):
 
 @cli.command()
 @click.option(
-    "--submission-dir", default=".", help="Directory containing student repos."
+    "--submission-dir",
+    default=".",
+    help="Directory containing student repos.",
+    type=click.Path(exists=True, file_okay=False),
 )
 @click.option(
     "--message",
     default="assessment",
     help="Commit message to use for assessment branch commits.",
+    type=click.STRING,
 )
 @click.option(
     "--branch-name",
     default="assessment",
     help="Name of the branch to be pushed to the origin (GitHub).",
+    type=click.STRING,
 )
 def push(submission_dir, message, branch_name):
     """
     Stage all changes, commit, and push to origin.
 
-    This command will iterate through each studentn repo and
+    This command will iterate through each student repo and
     stage all your assessment changes, commit them with the provided
-    commit message and push to origin with the provided branch name.
+    commit message, and push to origin with the provided branch name.
     """
     push_branches(submission_dir, message, branch_name)
 
