@@ -95,6 +95,27 @@ This setup wizard will ask you to set up:
 
 You can clone this repo and install this CLI tool in "editable" mode. This means that any changes you make to source code will be reflected automatically in the CLI tool commands - no need to reinstall the tool after every change.
 
+## Virtual Environment
+
+Create a virtual environment.
+
+```bash
+python -m venv .venv
+```
+
+VS Code will likely detect the new venv and ask if you want to activate this for this workspace. Do so. VS Code will now activate the venv whenever you open this project.
+
+Activate the virtual environment if not already. Then install the cli tool. Because the venv is active, the tool's dependencies will be saved to the `.venv` directory instead of the system.
+
+```bash
+source .venv/bin/activate
+pip install -e .
+```
+
+`pip install -e .` will install the CLI tool in editable mode.
+
+## Conda
+
 Clone this repo and configure a virtual environment using `conda`. Use the Anaconda Prompt for environment setup and testing. In Anaconda Prompt:
 
 ```bash
