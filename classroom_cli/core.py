@@ -14,6 +14,7 @@ def gh_classroom_clone(assignment_id, class_dir) -> str:
     Returns path of directory where assignments were cloned.
     """
 
+    # Checks if token exists
     get_config("github_token")
 
     def remove_readonly(func, path, excinfo):

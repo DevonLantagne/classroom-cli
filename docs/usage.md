@@ -4,11 +4,17 @@
 
 ### Course Directory
 
-You will likely want to make a directory on your local machine to contain all the different assignments, let this be called the `course_dir` directory. Inside this directory you will have folders for each GitHub Classroom assignment. Inside each assignment folder will be all the student repositories.
+You will likely want to make a directory on your local machine to contain all the different assignments, let this be called the `course_dir` directory. 
+Inside this directory you will have folders for each assignment.
+Inside each assignment folder will be all the student repositories.
 
 ### Student Roster
 
-Download the student roster from GitHub Classroom. This will help `classroom-cli` prepend the student names to their repos when the repos are cloned.
+You must procure a roster of students as a `.csv` file with headers "email" and "username".
+`email` will be used to name student repos - text before the `@` will be included in the repo name.
+`username` is the student's GitHub username.
+
+This will help `classroom-cli` prepend the student names to their repos when the repos are cloned.
 
 Place this roster file in the classroom-cli's root directory.
 
