@@ -93,11 +93,11 @@ def roster():
     """
     Print the roster dictionary.
 
-    Prints the roster that you provided with your roster_csv .env variable.
+    Prints the roster that you provided in the config.
     """
     from .utils import load_roster
 
-    roster = load_roster(get_config("roster_csv"))
+    roster = load_roster(get_config("roster_path"))
     for email_prefix, github_username in roster.items():
         click.echo(f"{email_prefix}: {github_username}")
 

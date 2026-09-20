@@ -48,11 +48,52 @@ BME2310-AY2027S1
 ## Preparation
 
 
+### GitHub Organization Settings
+
+TODO: Enable Fine-grained PATs
+
+
+### GitHub Personal Access Token
+
+TODO: token using 'gh' command or generate through personal github account settings:
+
+Settings > Credentials > Fine-grained personal access tokens.
+
+Generate new token.
+
+Give it any name and description for your records.
+
+Set the `Resource owner` to your classroom organization.
+
+Set the expiration date. Consider setting it about a month after the end of the semester.
+
+Set the `Repository access` to `All repositories`.
+
+In the `Permissions` section, add the `Administration` and `Contents` permissions and set them BOTH to `Read and write`.
+
+Generate the token.
+
+Save this token somewhere safe - it is essentially a password to your GitHub organization with limited control.
+You will need this token during setup.
+
+
 ### Course Directory
 
 You will need to make a directory on your local machine to contain all the different assignments, let this be called the `course_dir` directory. 
 Inside this directory you will have folders for each assignment.
 Inside each assignment folder will be all the student repositories.
+
+
+### Student Roster
+
+You must procure a roster of students as a `.csv` file with headers "email" and "github_username".
+- `email` will be used to name student repos - text before the `@` will be included in the repo name.
+- `github_username` is the student's GitHub username.
+
+`classroom-cli` will create student repositories by appending their email prefix to the repository assignment name.
+
+Place this roster file somewhere where it won't move.
+You will need its local later (its file path).
 
 
 ### Configuration
@@ -67,17 +108,6 @@ Running this will prompt you to set up authentication with GitHub, your class ro
 
 > [!WARNING]
 > The GitHub Token (a password) will be stored in a plain-text config file and also be briefly exposed when being used. This isn't good practice but will suffice for a single-user safe machine.
-
-
-### Student Roster
-
-You must procure a roster of students as a `.csv` file with headers "email" and "github_username".
-- `email` will be used to name student repos - text before the `@` will be included in the repo name.
-- `github_username` is the student's GitHub username.
-
-`classroom-cli` will create student repositories by appending their email prefix to the repository assignment name.
-
-Place this roster file in the classroom-cli's root directory.
 
 Test that the CLI tool can see the roster after configuring by running:
 

@@ -59,7 +59,7 @@ def clone_assignment_repos(assignment_name, class_dir) -> str:
     term_code = get_config("term_code")
     org = gh.get_organization(org_name)
 
-    roster = load_roster(get_config("roster_csv"))  # {email_prefix: username}
+    roster = load_roster(get_config("roster_path"))  # {email_prefix: username}
 
     os.makedirs(class_dir, exist_ok=True)
     assignment_dir = os.path.join(class_dir, f"{assignment_name}")
@@ -97,8 +97,8 @@ def clone_assignment_repos(assignment_name, class_dir) -> str:
             continue
 
         # NOTE: token is embedded in the clone URL, which briefly makes it
-        # visible via `ps aux` while the subprocess runs. Alternative is a
-        # GIT_ASKPASS helper.
+        # visible via inspection like `ps aux` while the subprocess runs.
+        # Alternative is a GIT_ASKPASS helper.
         clone_url = repo.clone_url.replace("https://", f"https://{token}@")
 
         click.echo(f"Cloning {repo.name}...")

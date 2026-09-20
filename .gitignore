@@ -1,5 +1,5 @@
-# Hide class roster
-classroom_roster.csv
+# Hide class roster csv in the root directory
+/*.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
