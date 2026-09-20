@@ -3,6 +3,7 @@ import subprocess
 
 import click
 import pandas as pd
+from github import Github
 
 from .config import get_config
 
@@ -53,6 +54,11 @@ def getRepoPaths(submission_dir):
         if os.path.isdir(os.path.join(submission_dir, d))
     ]
     return repo_paths
+
+
+def get_github_client() -> Github:
+    """Return an authenticated PyGithub client."""
+    return Github(get_github_token())
 
 
 def get_github_token() -> str:

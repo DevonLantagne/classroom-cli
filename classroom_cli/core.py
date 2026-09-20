@@ -4,15 +4,9 @@ import stat
 import subprocess
 
 import click
-from github import Github
 
 from .config import get_config
-from .utils import get_github_token, getRepoPaths, load_roster
-
-
-def get_github_client() -> Github:
-    """Return an authenticated PyGithub client."""
-    return Github(get_github_token())
+from .utils import get_github_client, get_github_token, getRepoPaths, load_roster
 
 
 def remove_readonly(func, path, excinfo):
