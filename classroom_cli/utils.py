@@ -13,6 +13,7 @@ def load_roster(csv_path):
     """Load CSV mapping student email-prefixes to GitHub usernames."""
     df = pd.read_csv(csv_path)
     email_prefixes = df["email"].str.split("@").str[0]
+    # If no @ in string, then return the whole string
     return dict(zip(email_prefixes, df["github_username"], strict=False))
 
 

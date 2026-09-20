@@ -4,101 +4,122 @@ import stat
 import subprocess
 
 import click
+from github import Github
 
 from .config import get_config
-from .utils import getRepoPaths, load_roster
+from .utils import get_github_token, getRepoPaths, load_roster
 
 
-def gh_classroom_clone(assignment_id, class_dir) -> str:
-    """Clone a GitHub Classroom assignment.
-    Returns path of directory where assignments were cloned.
+def get_github_client() -> Github:
+    """Return an authenticated PyGithub client."""
+    return Github(get_github_token())
+
+
+def remove_readonly(func, path, excinfo):
     """
+    func: the function that failed (os.remove, os.rmdir)
+    path: the path that failed
+    excinfo: exception info tuple (type, value, traceback)
+    """
+    # Make the file writable
+    os.chmod(path, stat.S_IWRITE)
+    func(path)  # retry
 
-    # Checks if token exists
-    get_config("github_token")
 
-    def remove_readonly(func, path, excinfo):
-        """
-        func: the function that failed (os.remove, os.rmdir)
-        path: the path that failed
-        excinfo: exception info tuple (type, value, traceback)
-        """
-        # Make the file writable
-        os.chmod(path, stat.S_IWRITE)
-        func(path)  # retry
+def get_assignment_repos(org, term_code: str, assignment_name: str):
+    """Query an org for repos belonging to a given assignment.
 
-    roster = load_roster(get_config("roster_csv"))
+    Repos are expected to follow the naming scheme:
+        {term_code}-{assignment_name}-{student_email_prefix}
+    e.g. AY2027S1-Lab1-jsmith
+
+    Returns a list of (repo, student_email_prefix) tuples.
+    """
+    prefix = f"{term_code}-{assignment_name}-"
+    matches = []
+    for repo in org.get_repos():
+        if repo.name.startswith(prefix):
+            student_prefix = repo.name[len(prefix) :]
+            matches.append((repo, student_prefix))
+    return matches
+
+
+def clone_assignment_repos(assignment_name, class_dir) -> str:
+    """Clone all student repos for a given assignment from the GitHub org.
+
+    Repos are discovered by querying the configured org and filtering by the
+    assignment's naming prefix.
+
+    Returns the directory where repos were cloned.
+    """
+    token = get_github_token()
+    gh = get_github_client()
+
+    org_name = get_config("github_org")
+    term_code = get_config("term_code")
+    org = gh.get_organization(org_name)
+
+    roster = load_roster(get_config("roster_csv"))  # {email_prefix: username}
+
     os.makedirs(class_dir, exist_ok=True)
+    assignment_dir = os.path.join(class_dir, f"{assignment_name}")
+    os.makedirs(assignment_dir, exist_ok=True)
 
-    click.echo(f"Cloning assignment ID '{assignment_id}' into '{class_dir}'...")
-
-    # Run gh classroom clone command with -a ID and the directory
-    subprocess.run(
-        [
-            get_config("gh_path"),
-            "classroom",
-            "clone",
-            "student-repos",
-            "-a",
-            str(assignment_id),
-            "--directory",
-            class_dir,
-        ],
-        shell=True,
-        check=True,
+    click.echo(
+        f"Querying org '{org_name}' for '{assignment_name}' repos "
+        f"(prefix '{term_code}-{assignment_name}-')..."
     )
+    repo_matches = get_assignment_repos(org, term_code, assignment_name)
 
-    # Find the "submissions" folder gh just made (the most recent one)
-    subdirs = [
-        os.path.join(class_dir, d)
-        for d in os.listdir(class_dir)
-        if os.path.isdir(os.path.join(class_dir, d))
-    ]
-    if not subdirs:
+    if not repo_matches:
         raise RuntimeError(
-            f"No assignment folder found in {class_dir}. The clone might have failed."
+            f"No repos found for assignment '{assignment_name}' in org "
+            f"'{org_name}'. Check the term_code/assignment_name and that "
+            "repos have been created."
         )
 
-    assignment_dir = max(subdirs, key=os.path.getmtime)
-    click.echo(f"Using assignment (submission) directory: {assignment_dir}")
+    click.echo(f"Found {len(repo_matches)} repo(s). Cloning into '{assignment_dir}'...")
 
-    # Rename folders using roster
-    for folder in os.listdir(assignment_dir):
-        folder_path = os.path.join(assignment_dir, folder)
-        if not os.path.isdir(folder_path):
+    cloned, skipped, failed = [], [], []
+
+    for repo, student_prefix in repo_matches:
+        if student_prefix not in roster:
+            click.echo(
+                f"Warning: '{repo.name}' has no matching roster entry "
+                f"for '{student_prefix}' (cloning anyway)."
+            )
+
+        target_path = os.path.join(assignment_dir, repo.name)
+
+        if os.path.exists(target_path):
+            click.echo(f"Skipping {repo.name}, already exists at {target_path}")
+            skipped.append(repo.name)
             continue
 
-        # Detect already-renamed folders (they start with a roster name)
-        # A simple heuristic: if the folder starts with any known "student_name_",
-        # skip it
-        already_named = any(
-            folder.startswith(student_name.replace(" ", "_"))
-            for student_name in roster.values()
-        )
-        if already_named:
-            # This folder was renamed in an earlier run, leave it alone
-            continue
+        # NOTE: token is embedded in the clone URL, which briefly makes it
+        # visible via `ps aux` while the subprocess runs. Alternative is a
+        # GIT_ASKPASS helper.
+        clone_url = repo.clone_url.replace("https://", f"https://{token}@")
 
-        # Otherwise, see if the folder matches a known GitHub username
-        for github_username, student_name in roster.items():
-            if github_username in folder:
-                safe_name = student_name.replace(" ", "_")
-                new_folder_name = f"{safe_name}-{folder}"
-                new_path = os.path.join(assignment_dir, new_folder_name)
+        click.echo(f"Cloning {repo.name}...")
+        try:
+            subprocess.run(
+                ["git", "clone", clone_url, target_path],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            cloned.append(repo.name)
+        except subprocess.CalledProcessError as e:
+            stderr = e.stderr.decode(errors="ignore") if e.stderr else ""
+            click.echo(f"Failed to clone {repo.name}: {stderr}")
+            failed.append(repo.name)
 
-                if os.path.exists(new_path):
-                    # The properly renamed folder already exists.
-                    # 'folder' is a duplicate!
-                    click.echo(f"Deleting duplicate {folder} (renamed already exists)")
-                    shutil.rmtree(folder_path, onexc=remove_readonly)
-                else:
-                    # This is a first-time rename
-                    click.echo(f"Renaming {folder} -> {new_folder_name}")
-                    os.rename(folder_path, new_path)
-
-                break  # stop after handling this folder
-
-    click.echo(f"Assignments cloned to 'submission-dir': {assignment_dir}")
+    click.echo(
+        f"\nSummary: {len(cloned)} cloned, {len(skipped)} skipped, "
+        f"{len(failed)} failed"
+    )
+    click.echo(f"Repos available in: {assignment_dir}")
     click.echo(
         "cd into or use this directory for the\n"
         "--submission-dir option for other commands"
@@ -118,10 +139,10 @@ def build_project(repo_path) -> bool:
             cwd=repo_path,
             check=True,
         )
-        click.echo("\tBuild Successfull")
+        click.echo("\t✅ Build Successful")
         return True
     except subprocess.CalledProcessError:
-        click.echo("\tBuild Failed")
+        click.echo("\t❌ Build Failed")
         return False
 
 
@@ -139,7 +160,9 @@ def build_all(submission_dir):
 
 
 def changeBranch(submission_dir, branch_name):
-    """Change the branch of all git repositories in a submission directory."""
+    """Change the branch of all git repositories in a submission directory.
+    Creates the branch if it doesn't exist, otherwise checks it out.
+    """
 
     click.echo(
         f"Changing branch to '{branch_name}' for all repositories in '{submission_dir}'"
@@ -181,8 +204,10 @@ def changeBranch(submission_dir, branch_name):
 
 
 def push_branches(submission_dir, message, branch_name):
+    """Commit and push all changes in a submission directory to the given branch."""
 
-    get_config("github_token")
+    # Confirms a token is resolvable before we start iterating repos
+    get_github_token()
 
     repo_paths = getRepoPaths(submission_dir)
 
@@ -250,7 +275,7 @@ def push_branches(submission_dir, message, branch_name):
             )
             click.echo("Pushed to origin.")
         except subprocess.CalledProcessError:
-            click.echo("Failed to push to origin.")
+            click.echo("❌ Failed to push to origin.")
 
 
 def launch_editor(editor_cmd: str, target_dir: str):

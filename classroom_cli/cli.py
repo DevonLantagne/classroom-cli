@@ -4,7 +4,7 @@ from .config import config_wizard, get_config
 from .core import (
     build_all,
     changeBranch,
-    gh_classroom_clone,
+    clone_assignment_repos,
     launch_editor,
     push_branches,
 )
@@ -13,11 +13,11 @@ from .core import (
 @click.group()
 def cli():
     """
-    GitHub Classroom assignment manager.
+    Assignment manager for GitHub as an alternative to GitHub Classroom.
 
     This CLI tool can clone all student repos to a selected folder.
-    You can perform a batched build of all student repositories.
-    You can easily create 'assessment' branches from their main.
+    You can perform a batched build (PlatformIO) of all student repositories.
+    You can easily create 'assessment' branches from student main branches.
     You can also commit and push all 'assessment' branches at once.
 
     To begin, run: classroom-cli configure
@@ -38,33 +38,28 @@ def configure():
 
 
 @cli.command()
-@click.argument("assignment_id")
+@click.argument("assignment_name")
 @click.option(
     "--class-dir",
     default=".",
     help="Directory where the assignment folder will be created.",
     type=click.Path(file_okay=False, dir_okay=True, writable=True, resolve_path=True),
 )
-def clone(assignment_id, class_dir):
+def clone(assignment_name, class_dir):
     """
     Clones all student repos for an assignment.
 
     A submission directory will be created in the class_dir. Student
-    repos will be cloned into the submission directory. Student repos
-    are prepended with their student names provided by the classroom
-    roster csv file.
+    repos will be cloned into the submission directory.
 
-    Do not run this command twice for the same assignment unless some
-    students did not have a repo prior to your first clone. This will
-    cause gh to clone new repos and waste your time. This command will
-    detect if gh clones new repos and remove them (you will still have
-    the repos from your first assignment clone).
+    This command is idempotent. If the repos have already been cloned,
+    the command will skip cloning.
     """
-    gh_classroom_clone(assignment_id, class_dir)
+    clone_assignment_repos(assignment_name, class_dir)
 
 
 @cli.command()
-@click.argument("assignment_id")
+@click.argument("assignment_name")
 @click.option(
     "--class-dir",
     default=".",
@@ -77,7 +72,7 @@ def clone(assignment_id, class_dir):
     help="Name of the branch to be created in the student's repo.",
     type=click.STRING,
 )
-def cloneBuildBranch(assignment_id, class_dir, branch_name):
+def cloneBuildBranch(assignment_name, class_dir, branch_name):
     """
     Runs 'clone', 'build', and 'branch' commands.
 
@@ -86,7 +81,7 @@ def cloneBuildBranch(assignment_id, class_dir, branch_name):
     build it, and then create a branch for assessment.
     """
     # Clone assignments just like the 'clone' command
-    submissionDir = gh_classroom_clone(assignment_id, class_dir)
+    submissionDir = clone_assignment_repos(assignment_name, class_dir)
     # Build the assignment just like the 'build' command
     build_all(submissionDir)
     # Create 'Assessment' branch just like the 'branch' command
@@ -102,15 +97,14 @@ def roster():
     """
     from .utils import load_roster
 
-    roster_csv = get_config("roaster_csv")
-    roster = load_roster(roster_csv)
-    for username, identifier in roster.items():
-        click.echo(f"{identifier}: {username}")
+    roster = load_roster(get_config("roster_csv"))
+    for email_prefix, github_username in roster.items():
+        click.echo(f"{email_prefix}: {github_username}")
 
 
 @cli.command()
 @click.option(
-    "--submission_dir",
+    "--submission-dir",
     default=".",
     help="Directory containing student repos.",
     type=click.Path(exists=True, file_okay=False),

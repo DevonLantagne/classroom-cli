@@ -32,7 +32,7 @@ This cli program is built using Python. This installation guide will help you in
 
     Open a terminal (or use the same one from earlier) and run:
 
-    ```
+    ```bash
     python -m pip install --user pipx
     python -m pipx ensurepath
     ```
@@ -45,7 +45,7 @@ This cli program is built using Python. This installation guide will help you in
 
 1. Open a terminal and run:
 
-    ```
+    ```bash
     pipx install git+https://github.com/DevonLantagne/classroom-cli
     ```
 
@@ -53,7 +53,7 @@ This cli program is built using Python. This installation guide will help you in
 
 2. You can test `classroom-cli` by running:
 
-    ```
+    ```bash
     classroom-cli --help
     ```
 
@@ -63,7 +63,7 @@ You can now run `classroom-cli` commands in any terminal and directory.
 
 You can easily update the CLI tool by running:
 
-```
+```bash
 pipx upgrade --spec git+https://github.com/DevonLantagne/classroom-cli classroom-cli
 ```
 
@@ -71,7 +71,7 @@ pipx upgrade --spec git+https://github.com/DevonLantagne/classroom-cli classroom
 
 You can uninstall the CLI tool by running:
 
-```
+```bash
 pipx uninstall classroom-cli
 ```
 
@@ -79,7 +79,7 @@ pipx uninstall classroom-cli
 
 After installing `classroom-cli`, configure the tool by running the configuration command:
 
-```
+```bash
 classroom-cli configure
 ```
 

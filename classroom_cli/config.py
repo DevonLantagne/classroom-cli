@@ -65,8 +65,20 @@ def config_wizard():
         show_default=False,
     )
 
+    github_org = click.prompt(
+        "Enter your GitHub organization name",
+        default=existing.get("github_org", ""),
+        show_default=True,
+    )
+
+    term_code = click.prompt(
+        "Enter your term code (e.g., 'AY2026S1')",
+        default=existing.get("term_code", ""),
+        show_default=True,
+    )
+
     roster_path = click.prompt(
-        "Enter the path to your class roster CSV from GitHub Classroom",
+        "Enter the path to your class roster CSV",
         default=existing.get("roster_path", ""),
         show_default=True,
     )
@@ -93,6 +105,8 @@ def config_wizard():
 
     cfg = {
         "github_token": github_token,
+        "github_org": github_org,
+        "term_code": term_code,
         "roster_path": roster_path,
         "gh_path": gh_path,
         "pio_path": pio_path,
