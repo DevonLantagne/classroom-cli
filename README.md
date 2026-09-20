@@ -83,6 +83,8 @@ After installing `classroom-cli`, configure the tool by running the configuratio
 classroom-cli configure
 ```
 
+TODO: update config wizard help here or in `usage.md`
+
 This setup wizard will ask you to set up:
 
 - `ROSTER_PATH`: path to the GitHub Classroom roster file `classroom_roster.csv` to link student names with GitHub users.
