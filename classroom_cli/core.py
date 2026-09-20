@@ -4,9 +4,142 @@ import stat
 import subprocess
 
 import click
+from github import GithubException, UnknownObjectException
 
 from .config import get_config
 from .utils import get_github_client, get_github_token, getRepoPaths, load_roster
+
+# --------------------------------------------------------------------------------------
+# Create Assignment Repos
+# --------------------------------------------------------------------------------------
+
+TEMPLATE_SUFFIX = "-template"
+
+
+def _describe(exc):
+    """Short human-readable text for a GithubException."""
+    data = exc.data if isinstance(exc.data, dict) else {}
+    return f"{exc.status}: {data.get('message') or exc}"
+
+
+def create_assignment_repos(template_name, dry_run=False, progress=None):
+    """Create one private repo per rostered student from a template repo.
+
+    Repo name: "<term_code>-<template name minus '-template'>-<email prefix>"
+
+    Returns a list of dicts, one per student, with keys:
+        student, username, repo, status, access, detail, invite_url
+    status: "created" | "exists" | "would_create" | "error"
+    access: "granted" | "invited" | None
+
+    Raises ValueError for problems affecting the whole run (bad template).
+    If `progress` (function handle) is given, it is called with each result
+    as it completes.
+    """
+    if not template_name.endswith(TEMPLATE_SUFFIX):
+        raise ValueError(
+            f"Template repo name must end with '{TEMPLATE_SUFFIX}': {template_name}"
+        )
+
+    # Connect to GitHub and get roster
+    gh = get_github_client()
+    org = gh.get_organization(get_config("github_org"))
+    roster = load_roster(get_config("roster_path"))
+
+    # Check the template repo is configured correctly
+    try:
+        template = org.get_repo(template_name)
+    except UnknownObjectException:
+        raise ValueError(
+            f"Template repo '{org.login}/{template_name}'"
+            "not found (or token lacks access)."
+        ) from None
+    if not template.is_template:
+        raise ValueError(
+            f"'{template_name}' is not marked as a template repository "
+            "(GitHub repo Settings -> check 'Template repository')."
+        )
+
+    # Assemble repo naming parts and create repo for each student
+    term_code = get_config("term_code")
+    base_name = template_name[: -len(TEMPLATE_SUFFIX)]
+    results = []
+    for prefix, username in roster.items():
+        repo_name = f"{term_code}-{base_name}-{prefix}"
+        result = _process_student(
+            gh, org, template, repo_name, prefix, username, dry_run
+        )
+        results.append(result)
+        if progress:
+            progress(result)
+    return results
+
+
+def _process_student(gh, org, template, repo_name, prefix, username, dry_run):
+    """Create (or repair access to) one student's repo.
+    Creates a private repo from a template in the organization.
+    Then grants that student write access to that repo.
+    If the repo already exists, it will not be recreated, but access will be granted.
+
+    GitHub errors never propagate; they are reported in the returned dict (from result).
+    """
+
+    def result(status, access=None, detail="", invite_url=None):
+        return {
+            "student": prefix,
+            "username": username,
+            "repo": repo_name,
+            "status": status,
+            "access": access,
+            "detail": detail,
+            "invite_url": invite_url,
+        }
+
+    created = False
+    try:
+        try:
+            user = gh.get_user(username)
+        except UnknownObjectException:
+            return result(
+                "error", detail=f"GitHub user '{username}' not found (check spelling)"
+            )
+
+        note = "" if org.has_in_members(user) else "not an org member yet"
+
+        try:
+            repo = org.get_repo(repo_name)
+        except UnknownObjectException:
+            repo = None
+
+        if dry_run:
+            return result("would_create" if repo is None else "exists", detail=note)
+
+        if repo is None:
+            repo = org.create_repo_from_template(repo_name, template, private=True)
+            created = True
+        elif repo.has_in_collaborators(user):
+            return result("exists", access="granted", detail="already has access")
+
+        # Returns an Invitation if GitHub sent an invite, None if access was immediate
+        invitation = repo.add_to_collaborators(user, permission="push")
+
+    except GithubException as e:
+        prefix_msg = (
+            "repo created, but granting access failed (re-run to retry): "
+            if created
+            else ""
+        )
+        return result("error", detail=prefix_msg + _describe(e))
+
+    status = "created" if created else "exists"
+    if invitation is None:
+        return result(status, access="granted")
+    return result(
+        status,
+        access="invited",
+        detail=note or "repo invitation sent",
+        invite_url=invitation.html_url,
+    )
 
 
 def remove_readonly(func, path, excinfo):
@@ -18,6 +151,17 @@ def remove_readonly(func, path, excinfo):
     # Make the file writable
     os.chmod(path, stat.S_IWRITE)
     func(path)  # retry
+
+
+# --------------------------------------------------------------------------------------
+# Reading / Cloning Student Repos
+# --------------------------------------------------------------------------------------
+
+
+def get_template_repos(org):
+    """Return all repos in the org that look like assignment templates
+    (i.e. whose name ends in '-template')."""
+    return [repo for repo in org.get_repos() if repo.name.endswith("-template")]
 
 
 def get_assignment_repos(org, term_code: str, assignment_name: str):
@@ -72,7 +216,8 @@ def clone_assignment_repos(assignment_name, class_dir) -> str:
             "repos have been created."
         )
 
-    click.echo(f"Found {len(repo_matches)} repo(s). Cloning into '{assignment_dir}'...")
+    click.echo(f"Found {len(repo_matches)} repo(s).")
+    click.echo(f"Cloning into '{assignment_dir}'...")
 
     cloned, skipped, failed = [], [], []
 
@@ -122,6 +267,11 @@ def clone_assignment_repos(assignment_name, class_dir) -> str:
     return assignment_dir
 
 
+# --------------------------------------------------------------------------------------
+# PlatformIO-Specific Building
+# --------------------------------------------------------------------------------------
+
+
 def build_project(repo_path) -> bool:
     """Build a PlatformIO project located at repo_path."""
     pio_path = get_config("pio_path")
@@ -151,6 +301,11 @@ def build_all(submission_dir):
     click.echo(
         f"\nSummary: {results.count(True)} passed, {results.count(False)} failed"
     )
+
+
+# --------------------------------------------------------------------------------------
+# Assessment Branching
+# --------------------------------------------------------------------------------------
 
 
 def changeBranch(submission_dir, branch_name):
@@ -197,21 +352,81 @@ def changeBranch(submission_dir, branch_name):
             )
 
 
-def push_branches(submission_dir, message, branch_name):
-    """Commit and push all changes in a submission directory to the given branch."""
+# --------------------------------------------------------------------------------------
+# Pushing Assessment Branches
+# --------------------------------------------------------------------------------------
+
+
+def _run_git(repo_path, *args):
+    return subprocess.run(
+        ["git", *args],
+        cwd=repo_path,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+
+def _summarize_changes(repo_path):
+    """Return display lines describing what `git add -A && git commit` would include.
+    Does not modify the repo or its index.
+    """
+    lines = []
+
+    # Tracked files (staged and unstaged) compared to the last commit
+    diff = _run_git(repo_path, "diff", "HEAD", "--numstat")
+    for row in diff.stdout.splitlines():
+        added, removed, path = row.split("\t", 2)
+        if added == "-":  # git reports binary files as "-\t-"
+            lines.append(f"{path} (binary)")
+        else:
+            lines.append(f"{path} +{added}/-{removed}")
+
+    # New files that `git add -A` would pick up (respects .gitignore)
+    untracked = _run_git(repo_path, "ls-files", "--others", "--exclude-standard")
+    for path in untracked.stdout.splitlines():
+        lines.append(f"{path} (new, untracked)")
+
+    return lines
+
+
+def push_branches(submission_dir, message, branch_name, dry_run=False):
+    """Commit and push all changes in a submission directory to the given branch.
+    If there are no changes to commit, the branch is still pushed to origin but no
+    commit is created.
+
+    With dry_run=True, nothing is checked out, committed, or pushed; a per-file
+    summary of pending changes is printed instead.
+    """
 
     # Confirms a token is resolvable before we start iterating repos
     get_github_token()
 
     repo_paths = getRepoPaths(submission_dir)
 
-    click.echo(
-        f"Committing and pushing '{branch_name}' branch to "
-        "origin for all student repos..."
-    )
+    if dry_run:
+        click.echo(f"DRY RUN: pending changes for '{branch_name}' in each student repo")
+    else:
+        click.echo(
+            f"Committing and pushing '{branch_name}' branch to "
+            "origin for all student repos..."
+        )
 
     for repo_path in repo_paths:
         repo_name = os.path.basename(repo_path)
+
+        if dry_run:
+            click.echo(f"\n{repo_name}:")
+            changes = _summarize_changes(repo_path)
+            if changes:
+                for line in changes:
+                    click.echo(f"  {line}")
+            else:
+                click.echo("  No changes to commit")
+            continue
+
+        # else not dry_run
+
         click.echo(f"\n--- {repo_name} ---")
 
         # Ensure assessment branch exists and is checked out
@@ -270,6 +485,11 @@ def push_branches(submission_dir, message, branch_name):
             click.echo("Pushed to origin.")
         except subprocess.CalledProcessError:
             click.echo("❌ Failed to push to origin.")
+
+
+# --------------------------------------------------------------------------------------
+# Launching Code Editor
+# --------------------------------------------------------------------------------------
 
 
 def launch_editor(editor_cmd: str, target_dir: str):

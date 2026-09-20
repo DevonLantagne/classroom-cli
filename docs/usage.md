@@ -69,7 +69,9 @@ Set the expiration date. Consider setting it about a month after the end of the 
 
 Set the `Repository access` to `All repositories`.
 
-In the `Permissions` section, add the `Administration` and `Contents` permissions and set them BOTH to `Read and write`.
+In the `Permissions` section:
+- In the `Repositores` tab add the `Administration` and `Contents` permissions and set them BOTH to `Read and write`.
+- In the `Organizations` tab, add the `Members` permission and set to `Read-only`.
 
 Generate the token.
 
@@ -116,6 +118,89 @@ classroom-cli roster
 ```
 
 
+## Typical Workflow
+
+For this example:
+- We want to make an assignment for a lab activity named "Lab1-Intro".
+- Our organization is called "BME-2310"
+- We made a folder on our local machine called "msoe_bme_2310" (you must know the full path).
+
+Create a template repo in your organization.
+Ensure the repo name ends in `-template` and is also configured as a template repository in its settings page.
+We would make a template repo named `Lab1-Intro-template`.
+
+Confirm the template is valid:
+
+```bash
+classroom-cli show-templates
+```
+
+Now create the repos for each student:
+
+```bash
+classroom-cli create-assignment Lab1-Intro-template
+```
+
+You can also use the `--dry-run` option to see a 'what would happen' view of the command:
+
+```bash
+classroom-cli create-assignment --dry-run Lab1-Intro-template
+```
+
+After students submit their work by committing and pushing to github, clone them to your machine.
+
+Change working directory into your `msoe_bme_2310` folder.
+
+```bash
+classroom-cli clone Lab1-Intro
+```
+
+This creates a folder in `msoe_bme_2310` titled `Lab1-Intro`. CD into it:
+
+```bash
+cd Lab1-Intro
+```
+
+We CD into the assignment directory because now we don't need to use the `--submission-dir` flag for the assignment-level commands.
+
+Optional: you can build all repositories to check if they actually build. This uses PlatformIO.
+
+```bash
+classroom-cli build
+```
+
+To begin the assessment process, create an `assessment` branch (the default name) in all of the repositories:
+
+```bash
+classroom-cli branch
+```
+
+The repositories cloned to your machine now have the `assessment` branch checked-out.
+Any edits you make in their repos will not be applied to their `main` branch.
+You can also add new files to their repo.
+
+To view all repositories in VS Code (or whatever editor you configured):
+
+```bash
+classroom-cli open-all
+```
+
+> [!IMPORTANT]
+> `open-all` is only really good for viewing and editing source code.
+> Because the working directory is one above the actual repo, some build commands may not work.
+
+After making edits and providing feedback (perhaps by adding a `feedback.md` file to their repo), you can mass-commit and push all repos:
+
+```bash
+classroom-cli push
+```
+
+This also has a `--dry-run` flag to see what edits have been made and what will be committed:
+
+```bash
+classroom-cli push --dry-run
+```
+
 ## Creating Assignments
 
 This section shows you how to create an assignment using this CLI tool and thus creating repositories for each student.
@@ -126,7 +211,9 @@ TODO
 
 ### Batch-Create Student Repos
 
-TODO
+```bash
+classroom-cli create-assignment <template repo name>
+```
 
 ## Cloning Student Assignments
 
@@ -139,7 +226,8 @@ classroom-cli clone --output-dir <course_dir> <assignment_name>
 This will create a folder in `course_dir` with the name `assignment_name`. 
 Inside the `assignment_name` folder will be the student repos.
 
-`--output-dir` is optional and defaults to `.` (the current working directory). If your working directory is your `course-dir`, you do not need to provide `--output-dir`.
+`--output-dir` is optional and defaults to `.` (the current working directory).
+If your working directory is your `course-dir`, you do not need to provide `--output-dir`.
 
 > [!IMPORTANT]
 > `assignment_name` must match that of the created repositories from the naming convention:
@@ -178,6 +266,12 @@ Push each repo to 'submit' feedback to the students (for them to pull down).
 If you only want to read source code and not compile, you can open the `assignment_dir` in VS Code.
 All subfolders (student submissions) will be viewed as subfolders in the VS Code workspace.
 Git only tracks files in its respective repo.
+
+You can use the command:
+
+```bash
+classroom-cli open-all --submission-dir <assigment_dir>
+```
 
 
 ### Detailed Assessment
