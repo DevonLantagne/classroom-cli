@@ -149,8 +149,9 @@ def check_token(token: str, org: str) -> tuple[bool, str]:
             return False, "GitHub rejected the token (typo, expired, or revoked)."
         if e.status in (403, 404):
             return False, (
-                f"Could not access organization '{org}'. Check the org name, and that the "
-                "token's Resource owner is the organization (not your personal account)."
+                f"Could not access organization '{org}'. Check the org name,"
+                "and that the token's Resource owner is the organization"
+                "(not your personal account)."
             )
         return False, f"GitHub error {e.status}."
     except Exception as e:  # offline, DNS, timeout...
@@ -158,10 +159,13 @@ def check_token(token: str, org: str) -> tuple[bool, str]:
 
 
 def prompt_token(existing: str, org: str) -> str:
-    """Prompt the user for a GitHub token, with optional existing value and org check."""
+    """Prompt the user for a GitHub token,
+    with optional existing value and org check.
+    """
     if os.environ.get("GITHUB_TOKEN"):
         click.echo(
-            "Note: GITHUB_TOKEN is set in your environment and will override the saved value."
+            "Note: GITHUB_TOKEN is set in your environment and "
+            "will override the saved value."
         )
     hint = f" [current: ...{existing[-4:]}]" if existing else ""
 
@@ -177,7 +181,8 @@ def prompt_token(existing: str, org: str) -> str:
             continue
         if not token.startswith("github_pat_"):
             click.echo(
-                "Warning: fine-grained tokens start with 'github_pat_'. Did you copy the right one?"
+                "Warning: fine-grained tokens start with 'github_pat_'."
+                "Did you copy the right one?"
             )
         ok, msg = check_token(token, org)
         if ok:

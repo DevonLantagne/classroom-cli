@@ -6,15 +6,43 @@ import pandas as pd
 
 from .config import get_config
 
-# TODO: Change CSV shape to email and username
-
 
 def load_roster(csv_path):
-    """Load CSV mapping student email-prefixes to GitHub usernames."""
-    df = pd.read_csv(csv_path)
-    email_prefixes = df["email"].str.split("@").str[0]
-    # If no @ in string, then return the whole string
-    return dict(zip(email_prefixes, df["github_username"], strict=False))
+    """Load CSV mapping student email-prefixes to GitHub usernames.
+
+    Rows missing an email or a github_username are skipped with a warning
+    (e.g. a student who hasn't submitted their username yet). Identical
+    duplicate rows are collapsed silently. Raises ValueError if the same
+    email appears with two different usernames, since we can't tell which
+    is right.
+    """
+    # skip_blank_lines=False keeps the row numbers below matching the file
+    df = pd.read_csv(csv_path, dtype=str, skip_blank_lines=False).dropna(how="all")
+
+    df["email"] = df["email"].str.strip().str.split("@").str[0].str.strip()
+    df["github_username"] = df["github_username"].str.strip()
+    for col in ("email", "github_username"):
+        df[col] = df[col].replace("", pd.NA)
+
+    incomplete = df["email"].isna() | df["github_username"].isna()
+    for idx, row in df[incomplete].iterrows():
+        missing = [c for c in ("email", "github_username") if pd.isna(row[c])]
+        who = row["email"] if pd.notna(row["email"]) else "<no email>"
+        click.secho(
+            f"WARNING: skipping roster row {idx + 2} ({who}): missing {' and '.join(missing)}",
+            fg="yellow",
+            err=True,
+        )
+    df = df[~incomplete].drop_duplicates(subset=["email", "github_username"])
+
+    conflicts = df[df["email"].duplicated(keep=False)]
+    if not conflicts.empty:
+        names = ", ".join(sorted(conflicts["email"].unique()))
+        raise ValueError(
+            f"Conflicting roster entries (same email, different username): {names}"
+        )
+
+    return dict(zip(df["email"], df["github_username"], strict=False))
 
 
 def getRepoPaths(submission_dir):
