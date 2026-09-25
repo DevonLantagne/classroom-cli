@@ -1,34 +1,132 @@
 # GitHub Classroom CLI for PlatformIO
 
-Python program to assist in grading PlatformIO projects submitted via GitHub Classroom.
+Python program to assist in grading PlatformIO projects submitted via GitHub.
 
-You will need the following on your system:
-- Python 3.12+
-- Git CLI
-- GitHub CLI
-- VS Code
+## Requirements
+
+For all Git/GitHub features:
+- Git CLI `git`
+- GitHub CLI `gh` (optional - nice for easy authentication)
+
+For easy assessment:
+- VS Code (or any editor that can open a folder)
+
+For embedded mass-building features (course-specific):
 - PlatformIO Extension for VS Code
+
+One of the following:
+- Python 3.12 or later
+- The `uv` Python package manager tool
+
+See *Installation* below for the differences in installation methods.
+
 
 # Installation
 
-This cli program is built using Python. This installation guide will help you install Python and then install the `classroom-cli` tool into a virtual environment.
+This cli program is built using Python.
+This installation guide will help you install the `classroom-cli` tool onto your system.
 
-## Install Python and Pipx
+There are several ways to install a Python CLI tool.
+Both methods create a virtual environment on your system and installs dependencies there to prevent contaminating your system Python 
+This guide suggests two methods:
+
+- [`uv`](https://docs.astral.sh/uv/) - a tool that manages Python interpreters, packages, and environments. Does not require Python pre-installed on host system (it installs the tool's preferred version of Python inside the virtual environment itself). If you do not have Python on your system, use `uv`.
+
+- `pipx` - Python package (installed with Python) to manage virtual environments and install Python CLI tools. If you already have Python, use this method.
+
+Both of these tools set up a virtual environment specific for the `classroom-cli` tool and adds the entrypoint `clsrm` to your system PATH.
+Virtual environment prevent the tool from compromising your system Python dependencies.
+
+> [!CAUTION]
+> It is not recommended to use `conda` to install general-purpose CLI tools such as `classroom-cli` since you would have to manually activate the environment to use the tool.
+
+
+> [!TIP]
+> Developers should consider installing `classroom-cli` in editable mode.
+> See **Developer Installation** for `uv` or `pipx`.
+>
+> This requires you to clone the repository source code.
+> Editable mode means that any changes you make to source code will be reflected automatically in the CLI tool commands - no need to reinstall the tool after every change.
+
+
+## Installing with `uv`
+
+Install the `uv` tool on your system if you do not yet have it:
+
+### For Windows:
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+### For macOS and Linux:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+### Install `classroom-cli` using `uv`:
+
+1. Run the following in your terminal after installing `uv`. You may need to restart your terminal for `uv` to be on your system PATH.
+
+    ```bash
+    uv tool install git+https://github.com/DevonLantagne/classroom-cli
+    ```
+
+2. You can test `classroom-cli` by running its command `clsrm` with the `--help` flag:
+
+    ```bash
+    clsrm --help
+    ```
+
+
+### Updating with `uv`
+
+To update `classroom-cli`:
+
+```bash
+uv tool upgrade classroom-cli
+```
+
+
+### Uninstalling with `uv`
+
+```bash
+uv tool uninstall classroom-cli
+```
+
+### Developer Installation with `uv`
+
+```bash
+cd <your code projects folder>
+git clone https://github.com/DevonLantagne/classroom-cli.git
+cd classroom-cli
+uv tool install -e .
+```
+
+Editing the command name or dependencies requires a re-install:
+
+```bash
+cd classroom-cli
+uv tool install -e . --reinstall
+```
+
+## Installing with `pipx`
 
 > [!NOTE]
-> If using MacOS or Linux, replace all instances of `python` with `python3`.
+> If using macOS or Linux, replace all instances of `python` with `python3`.
 
-1. Install Python 3.12+ on your system.
+1. Install Python 3.12+ on your system if you don't have it already.
 
     https://www.python.org/downloads/
 
-    During installation, make sure to check "**Add Python to PATH**".
+    During installation, make sure to enable "**Add Python to PATH**".
 
 2. Test your Python installation.
 
     Open a terminal and run the command: `python --version`. It should say something like `Python 3.12.xx`.
 
-3. Install pipx to manage Python packages globally.
+3. Install `pipx` to manage Python packages.
 
     Open a terminal (or use the same one from earlier) and run:
 
@@ -37,37 +135,33 @@ This cli program is built using Python. This installation guide will help you in
     python -m pipx ensurepath
     ```
 
-4. Close the terminal and open a new one for path changes to take effect. Test pipx with by running `pipx --version`.
+4. Close the terminal and open a new one for path changes to take effect.
 
-    `pipx` is the Python tool that will install `classroom-cli` so that the tool's dependencies don't interfere with your system Python.
+    Test pipx with by running `pipx --version`.
 
-## Install `classroom-cli`
-
-1. Open a terminal and run:
+5. Install `classroom-cli` with `pipx`:
 
     ```bash
     pipx install git+https://github.com/DevonLantagne/classroom-cli
     ```
 
-    This will install `classroom-cli` and its dependencies. You should now be able to run `classroom-cli` from any terminal in any directory.
-
-2. You can test `classroom-cli` by running:
+6. You can test `classroom-cli` by running its command `clsrm` with the `--help` flag:
 
     ```bash
-    classroom-cli --help
+    clsrm --help
     ```
 
-You can now run `classroom-cli` commands in any terminal and directory.
 
-## Updating `classoom-cli`
+### Updating with `pipx`
 
-You can easily update the CLI tool by running:
+To update `classroom-cli`:
 
 ```bash
 pipx upgrade --spec git+https://github.com/DevonLantagne/classroom-cli classroom-cli
 ```
 
-## Uninistalling `classroom-cli`
+
+### Uninstalling with `pipx`
 
 You can uninstall the CLI tool by running:
 
@@ -75,71 +169,29 @@ You can uninstall the CLI tool by running:
 pipx uninstall classroom-cli
 ```
 
-# Setup
-
-After installing `classroom-cli`, configure the tool by running the configuration command:
+### Developer Installation with `pipx`
 
 ```bash
-classroom-cli configure
+cd <your code projects folder>
+git clone https://github.com/DevonLantagne/classroom-cli.git
+cd classroom-cli
+pipx install -e .
 ```
 
-TODO: update config wizard help here or in `usage.md`
-
-This setup wizard will ask you to set up:
-
-- `ROSTER_PATH`: path to the GitHub Classroom roster file `classroom_roster.csv` to link student names with GitHub users.
-- `GH_PATH`: The path to your gh.exe
-- `GITHUB_TOKEN`: The token from your GH CLI. Run `gh auth token` in your terminal to show the token.
-- `PIO_PATH`: Path to the PlatformIO `pio` command. This is often found in your home folder in the `.platformio` folder.
-- `EDITOR`: The editor you want to open for each project (default is VS Code)
-
-# Development
-
-You can clone this repo and install this CLI tool in "editable" mode.
-This means that any changes you make to source code will be reflected automatically in the CLI tool commands - no need to reinstall the tool after every change.
-
-## Virtual Environment
-
-Create a virtual environment.
+Editing the command name or dependencies requires a re-install:
 
 ```bash
-python -m venv .venv
+cd classroom-cli
+pipx install -e . --force
 ```
 
-VS Code will likely detect the new venv and ask if you want to activate this for this workspace. Do so.
-VS Code will now activate the venv whenever you open this project.
 
-Activate the virtual environment if not already. Then install the cli tool. 
-Because the venv is active, the tool's dependencies will be saved to the `.venv` directory instead of the system.
+# Setup and Usage
 
-```bash
-source .venv/bin/activate
-pip install -e .
-```
+After installing `classroom-cli`, configure the tool by running the configuration command below.
 
-`pip install -e .` will install the CLI tool in editable mode.
-
-## Conda
-
-Clone this repo and configure a virtual environment using `conda`.
-Use the Anaconda Prompt for environment setup and testing. In Anaconda Prompt:
+Read the [usage guide](docs/usage.md) for instructions for configuration and obtaining required information.
 
 ```bash
-cd <path to this repo>
-conda create -n classroom-cli python=3.11
-conda activate classroom-cli
-pip install -e .
-```
-
-If using VS Code you will want to change your default terminal to CMD as this shell will automatically activate the virtual environment whenever a new terminal in VS Code is opened (for this workspace).
-
-> [!NOTE]
-> There is probably a way to make a VS Code profile and set CMD as the default terminal for this profile. This is a TODO. 
-
-You are now ready to test the CLI commands inside this environment.
-
-If the `environment.yml` changes, run the following in the environment:
-
-```bash
-conda env update --file environment.yml --prune
+clsrm configure
 ```

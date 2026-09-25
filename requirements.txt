@@ -1,4 +1,0 @@
-click==8.1.7
-pandas==2.2.2
-PyGithub==2.5.0
-python-dotenv

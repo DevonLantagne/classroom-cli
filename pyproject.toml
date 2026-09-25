@@ -1,12 +1,10 @@
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
+# --- Project metadata
 [project]
-name = "classroom-cli"
+name = "classroom-cli"      # used for pip/uv/pipx install commands
 version = "0.2.0"
-description = "CLI for managing GitHub Classroom assignments"
+description = "CLI for managing GitHub assignments"
 readme = "README.md"
+requires-python = ">=3.12"
 authors = [
     { name="Devon Lantagne", email="lantagned@msoe.edu" }
 ]
@@ -16,5 +14,16 @@ dependencies = [
     "pandas"
 ]
 
+# --- Commands created on install
 [project.scripts]
-classroom-cli = "classroom_cli.cli:cli"
+clsrm = "classroom_cli.cli:cli"
+
+# --- How to build/install the package
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+# --- Where setuptools finds code
+# Explicit include avoids "multiple top-level packages" errors
+[tool.setuptools.packages.find]
+include = ["classroom_cli*"]

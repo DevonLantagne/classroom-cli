@@ -1,14 +1,17 @@
 # Classroom CLI Usage
 
+Before configuring `classroom-cli`, familiarize yourself with some of its terminology and directory layout.
+
+
 ## Terminology and Organization
 
-`classroom-cli` is a CLI tool and will require you to be mindful of your terminals working directory.
-Several commands ask for paths as input arguments - they can be relative or absolute.
+`classroom-cli` is a CLI tool and will require you to be mindful of your terminal's working directory.
+Several commands use the current working directory as "input".
 
 |Term|Definition|
 |-|-|
-|`course-dir`|The directory that will hold all submission directories of the course. Each submission directory will contain all student repositories.|
-|`submission-dir`|The directory inside `course_dir` where student repos will be stored. This will share the same name as the general assignment name (not including Term Code).|
+|`course-dir`|**Course Directory.** The directory that will hold all *submission directories* of the course. Each submission directory will contain all student repositories. The name of `course-dir` can be anything. Do not place `course-dir` inside a cloud drive (OneDrive, iCloud, Box, etc.).|
+|`submission-dir`|**Submission Directory.** A directory representing an assignment where all student repositories will be stored. This will share the same name as the general assignment name (not including Term Code).|
 
 > [!TIP]
 > Consider making your `course-dir` your terminal's working directory.
@@ -103,7 +106,7 @@ You will need its local later (its file path).
 The CLI tool has an interactive configuration wizard by running:
 
 ```bash
-classroom-cli configure
+clsrm configure
 ```
 
 Running this will prompt you to set up authentication with GitHub, your class roster, and course details.
@@ -114,7 +117,7 @@ Running this will prompt you to set up authentication with GitHub, your class ro
 Test that the CLI tool can see the roster after configuring by running:
 
 ```bash
-classroom-cli roster
+clsrm roster
 ```
 
 
@@ -132,19 +135,19 @@ We would make a template repo named `Lab1-Intro-template`.
 Confirm the template is valid:
 
 ```bash
-classroom-cli show-templates
+clsrm show-templates
 ```
 
 Now create the repos for each student:
 
 ```bash
-classroom-cli create-assignment Lab1-Intro-template
+clsrm create-assignment Lab1-Intro-template
 ```
 
 You can also use the `--dry-run` option to see a 'what would happen' view of the command:
 
 ```bash
-classroom-cli create-assignment --dry-run Lab1-Intro-template
+clsrm create-assignment --dry-run Lab1-Intro-template
 ```
 
 After students submit their work by committing and pushing to github, clone them to your machine.
@@ -152,7 +155,7 @@ After students submit their work by committing and pushing to github, clone them
 Change working directory into your `msoe_bme_2310` folder.
 
 ```bash
-classroom-cli clone Lab1-Intro
+clsrm clone Lab1-Intro
 ```
 
 This creates a folder in `msoe_bme_2310` titled `Lab1-Intro`. CD into it:
@@ -166,13 +169,13 @@ We CD into the assignment directory because now we don't need to use the `--subm
 Optional: you can build all repositories to check if they actually build. This uses PlatformIO.
 
 ```bash
-classroom-cli build
+clsrm build
 ```
 
 To begin the assessment process, create an `assessment` branch (the default name) in all of the repositories:
 
 ```bash
-classroom-cli branch
+clsrm branch
 ```
 
 The repositories cloned to your machine now have the `assessment` branch checked-out.
@@ -182,7 +185,7 @@ You can also add new files to their repo.
 To view all repositories in VS Code (or whatever editor you configured):
 
 ```bash
-classroom-cli open-all
+clsrm open-all
 ```
 
 > [!IMPORTANT]
@@ -192,13 +195,13 @@ classroom-cli open-all
 After making edits and providing feedback (perhaps by adding a `feedback.md` file to their repo), you can mass-commit and push all repos:
 
 ```bash
-classroom-cli push
+clsrm push
 ```
 
 This also has a `--dry-run` flag to see what edits have been made and what will be committed:
 
 ```bash
-classroom-cli push --dry-run
+clsrm push --dry-run
 ```
 
 ## Creating Assignments
@@ -212,7 +215,7 @@ TODO
 ### Batch-Create Student Repos
 
 ```bash
-classroom-cli create-assignment <template repo name>
+clsrm create-assignment <template repo name>
 ```
 
 ## Cloning Student Assignments
@@ -220,7 +223,7 @@ classroom-cli create-assignment <template repo name>
 The `clone` command is used to clone all student submission to a `course-dir`/`assignment-name` directory.
 
 ```bash
-classroom-cli clone --output-dir <course_dir> <assignment_name>
+clsrm clone --output-dir <course_dir> <assignment_name>
 ```
 
 This will create a folder in `course_dir` with the name `assignment_name`. 
@@ -246,7 +249,7 @@ After the branches are created, the assessment branch will be checked out.
 This keeps the `main` branch in the student's control and makes any edits made by the evaluator only applied to the assessment branch.
 
 ```bash
-classroom-cli branch --submission-dir <assigment_dir>
+clsrm branch --submission-dir <assignment_dir>
 ```
 
 Replace `<assignment_dir>` with the path to the assignment folder (submission folder) that contains all the student repos.
@@ -270,7 +273,7 @@ Git only tracks files in its respective repo.
 You can use the command:
 
 ```bash
-classroom-cli open-all --submission-dir <assigment_dir>
+clsrm open-all --submission-dir <assignment_dir>
 ```
 
 
@@ -282,7 +285,7 @@ Failed builds will be noted in the command output.
 You will have to manually upload the binaries to your test board.
 
 ```bash
-classroom-cli build --submission-dir <assigment_dir>
+clsrm build --submission-dir <assignment_dir>
 ```
 
-Replace `<assigment_dir>` with the directory that contains the student's repos.
+Replace `<assignment_dir>` with the directory that contains the student's repos.
