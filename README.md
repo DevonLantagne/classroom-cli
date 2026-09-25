@@ -2,6 +2,11 @@
 
 Python program to assist in grading PlatformIO projects submitted via GitHub.
 
+Version: `0.2.0`
+
+> [!CAUTION]
+> ClassroomCLI is under heavy development; use at your own risk.
+
 ## Requirements
 
 For all Git/GitHub features:
