@@ -2,6 +2,7 @@ import os
 import shutil
 import stat
 import subprocess
+import sys
 
 import click
 from github import GithubException, UnknownObjectException
@@ -265,6 +266,146 @@ def clone_assignment_repos(assignment_name, class_dir) -> str:
     )
 
     return assignment_dir
+
+
+def _git(path, *args):
+    """Run a git command in `path` and return stripped stdout."""
+    result = subprocess.run(
+        ["git", "-C", path, *args],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",  # avoids Windows cp1252 decode errors on student content
+        errors="replace",
+        check=True,
+    )
+    return result.stdout.strip()
+
+
+def _rev_or_none(path, ref):
+    """Return the SHA for `ref`, or None if it doesn't exist."""
+    try:
+        return _git(path, "rev-parse", "--verify", "--quiet", ref)
+    except subprocess.CalledProcessError:
+        return None
+
+
+def _find_repo_dirs(submission_dir, students):
+    """Return repo folder names to update, optionally filtered by student prefix."""
+    all_dirs = sorted(
+        d
+        for d in os.listdir(submission_dir)
+        if os.path.isdir(os.path.join(submission_dir, d, ".git"))
+    )
+
+    if not students:
+        return all_dirs
+
+    selected = []
+    for student in students:
+        suffix = f"-{student}".lower()
+        matches = [d for d in all_dirs if d.lower().endswith(suffix)]
+        if not matches:
+            raise click.UsageError(
+                f"No repo found for student '{student}' in {submission_dir}"
+            )
+        if len(matches) > 1:
+            raise click.UsageError(
+                f"Student '{student}' matches multiple repos: {', '.join(matches)}"
+            )
+        selected.append(matches[0])
+    return selected
+
+
+def _update_main(path):
+    """Bring local 'main' up to date without disturbing the checked-out branch.
+
+    Returns (before, after) SHAs of local main (before is None if main didn't
+    exist locally). Raises CalledProcessError on git failure.
+    """
+    before = _rev_or_none(path, "refs/heads/main")
+    current = _git(path, "rev-parse", "--abbrev-ref", "HEAD")
+
+    if current == "main":
+        _git(path, "pull", "--ff-only", "origin", "main")
+    else:
+        # Fast-forwards local main from the remote without touching the
+        # working tree or the current branch.
+        _git(path, "fetch", "origin", "main:main")
+
+    after = _rev_or_none(path, "refs/heads/main")
+    return before, after
+
+
+def pull_assignment_repos(submission_dir, students=(), verbosity=0) -> bool:
+    """Update local 'main' in student repos under submission_dir.
+
+    verbosity: 0 = changed-repo report, 1 = + stat (files / line counts),
+               2 = + full diff.
+
+    Returns True if no repo failed.
+    """
+    repo_dirs = _find_repo_dirs(submission_dir, students)
+    if not repo_dirs:
+        raise RuntimeError(f"No git repos found in '{submission_dir}'.")
+
+    click.echo(
+        f"Updating 'main' in {len(repo_dirs)} repo(s) under '{submission_dir}'..."
+    )
+
+    updated, current, no_main, failed = [], [], [], []
+
+    for name in repo_dirs:
+        path = os.path.join(submission_dir, name)
+        try:
+            before, after = _update_main(path)
+        except subprocess.CalledProcessError as e:
+            stderr = (e.stderr or "").strip()
+            if "couldn't find remote ref" in stderr:
+                click.echo(f"Warning: {name} has no 'main' branch on the remote.")
+                no_main.append(name)
+            else:
+                click.echo(f"Failed {name}: {stderr or e}")
+                failed.append(name)
+            continue
+
+        if before == after:
+            current.append(name)
+            continue
+
+        updated.append(name)
+
+        if before is None:
+            click.echo(f"{name}: local 'main' created")
+            continue
+
+        count = _git(path, "rev-list", "--count", f"{before}..{after}")
+        click.echo(f"{name}: {count} new commit(s) on main")
+
+        if verbosity == 1:
+            stat = _git(path, "diff", "--stat", before, after)
+            click.echo(_indent(stat))
+        elif verbosity >= 2:
+            diff = _git(path, "diff", "--color=always", before, after)
+            click.echo(f"\n{'=' * 70}\n{name}\n{'=' * 70}")
+            click.echo(diff)
+            click.echo()
+
+    click.echo(
+        f"\nSummary: {len(updated)} updated, {len(current)} up to date, "
+        f"{len(no_main)} without main, {len(failed)} failed"
+    )
+    if updated:
+        click.echo("Updated: " + ", ".join(updated))
+    if no_main:
+        click.echo("No main: " + ", ".join(no_main))
+    if failed:
+        click.echo("Failed: " + ", ".join(failed))
+
+    return not failed
+
+
+def _indent(text, prefix="    "):
+    return "\n".join(prefix + line for line in text.splitlines())
 
 
 # --------------------------------------------------------------------------------------

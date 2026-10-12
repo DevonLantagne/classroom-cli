@@ -1,3 +1,4 @@
+import sys
 from collections import Counter
 
 import click
@@ -11,6 +12,7 @@ from .core import (
     create_assignment_repos,
     get_template_repos,
     launch_editor,
+    pull_assignment_repos,
     push_branches,
 )
 from .utils import get_github_client
@@ -261,6 +263,40 @@ def branch(submission_dir, branch_name):
     merge conflicts.
     """
     changeBranch(submission_dir, branch_name)
+
+
+@cli.command()
+@click.option(
+    "--submission-dir",
+    type=click.Path(exists=True, file_okay=False),
+    default=".",
+    help="Assignment directory containing the cloned student repos. "
+    "Defaults to the current working directory.",
+)
+@click.option(
+    "--student",
+    "-s",
+    "students",
+    multiple=True,
+    help="Only update this student (roster email prefix). Can be repeated.",
+)
+@click.option(
+    "-v",
+    "--verbose",
+    count=True,
+    help="-v shows files changed and line counts; -vv shows the full diff.",
+)
+def pull(submission_dir, students, verbose):
+    """
+    Pulls the latest commits on 'main' for each student repo.
+
+    Late submissions and regrade requests land on 'main'. This updates local
+    'main' in every repo without switching away from the branch you have
+    checked out (e.g. 'assessment').
+    """
+    ok = pull_assignment_repos(submission_dir, students, verbose)
+    if not ok:
+        sys.exit(1)
 
 
 @cli.command()
