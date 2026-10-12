@@ -1,8 +1,8 @@
 # --- Project metadata
 [project]
-name = "classroom-cli"      # used for pip/uv/pipx install commands
+name = "classroom-cli"
 version = "0.2.0"
-description = "CLI for managing GitHub assignments"
+description = "CLI for instructors to manage GitHub assignments"
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [
